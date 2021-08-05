@@ -1,6 +1,11 @@
 require('dotenv').config()
 import cors from 'cors'
 import { StatusCodes } from 'http-status-codes'
+import { createEvent } from 'ics'
+import { writeFileSync } from 'fs'
+const { ApolloServer } = require('apollo-server-express')
+const depthLimit = require('graphql-depth-limit')
+const schema = require('./streaming/ohyay/src/schema/schema')
 import express from 'express'
 import morgan from 'morgan'
 import AWS from 'aws-sdk'
@@ -28,6 +33,9 @@ import {
    getDistance,
    authorizeRequest,
    handleImage,
+   OhyayRouter,
+   ExperienceRouter,
+   handleCartPayment
    GetFullOccurenceRouter,
    CustomerRouter
 } from './entities'
@@ -43,6 +51,30 @@ import {
    handleSubscriptionCancelled
 } from './entities/emails'
 const app = express()
+const PORT = process.env.PORT || 4000
+const isProd = process.env.NODE_ENV === 'production' ? true : false
+
+const apolloserver = new ApolloServer({
+   schema,
+   playground: {
+      endpoint: `${process.env.ENDPOINT}/graphql`
+   },
+   introspection: true,
+   validationRules: [depthLimit(11)],
+   formatError: err => {
+      console.log(err)
+      if (err.message.includes('ENOENT'))
+         return isProd ? new Error('No such folder or file exists!') : err
+      return isProd ? new Error(err) : err
+   },
+   debug: true,
+   context: ({ req }) => {
+      const ohyay_api_key = req.header('ohyay_api_key')
+      return { ohyay_api_key }
+   }
+})
+
+apolloserver.applyMiddleware({ app })
 
 // Middlewares
 app.use(cors())
@@ -61,8 +93,6 @@ AWS.config.update({
 
 AWS.config.setPromisesDependency(bluebird)
 
-const PORT = process.env.PORT || 4000
-
 // Routes
 app.use('/api/mof', MOFRouter)
 app.use('/api/menu', MenuRouter)
@@ -80,8 +110,12 @@ app.use('/api/rewards', RewardsRouter)
 app.get('/api/kot-urls', getKOTUrls)
 app.use('/api/modifier', ModifierRouter)
 app.use('/api/parseur', ParseurRouter)
+
+app.use('/api/ohyay', OhyayRouter)
+app.use('/api/experience', ExperienceRouter)
+app.post('/api/handleCartPayment', handleCartPayment)
 app.use('/api/occurences', GetFullOccurenceRouter)
-app.use('/api/customer', CustomerRouter)
+
 
 app.use('/webhook/user', UserRouter)
 app.use('/webhook/devices', DeviceRouter)

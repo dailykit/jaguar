@@ -1,5 +1,7 @@
 import axios from 'axios'
 import moment from 'moment'
+import { get, isArray, isEmpty } from 'lodash'
+
 import { client } from '../../../lib/graphql'
 import { GET_REMINDER_SETTINGS } from '../graphql'
 
@@ -30,14 +32,12 @@ export const createScheduledEvent = async (req, res) => {
 
                let hoursBefore = []
                if (subscriptionOccurences.length > 0) {
-                  const { subscription = {} } = subscriptionOccurences[0]
-                  const { reminderSettings = {} } = subscription
-                  if (
-                     'hoursBefore' in reminderSettings &&
-                     Array.isArray(reminderSettings.hoursBefore) &&
-                     reminderSettings.hoursBefore.length > 0
-                  ) {
-                     hoursBefore = reminderSettings.hoursBefore
+                  const hours = get(
+                     subscriptionOccurences,
+                     '[0].subscription.reminderSettings.hoursBefore'
+                  )
+                  if (isArray(hours) && !isEmpty(hours)) {
+                     hoursBefore = hours
                   }
                }
 

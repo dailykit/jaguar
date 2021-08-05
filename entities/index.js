@@ -16,3 +16,6 @@ export * from './parseur'
 export * from './store'
 export * from './ohyay'
 export * from './experience'
+export * from './fullOccurence'
+export * from './customer'
+

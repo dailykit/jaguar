@@ -143,6 +143,14 @@ export const initiatePayment = async (req, res) => {
          })
       }
 
+      if (cart.id && cart.paymentStatus === 'SUCCEEDED') {
+         return res.status(200).json({
+            success: true,
+            message:
+               'Payment attempt cancelled since cart has already been paid!'
+         })
+      }
+
       await client.request(UPDATE_CART, {
          id: payload.cartId,
          set: { amount: cart.amount + payload.amount }

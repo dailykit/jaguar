@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 export const template_compiler = (text, data) => {
    try {
       const regex = /\{\{([^}]+)\}\}/g

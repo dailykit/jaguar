@@ -1,4 +1,5 @@
 export * from './create'
+export * from './autoSelect'
 export * from './manageOccurence'
 export * from './createScheduledEvent'
 export * from './reminderMail'

@@ -55,6 +55,7 @@ export const CREATE_BULK_ITEM_HISTORY_FOR_BULK_WORK_ORDER = `
       $bulkItemId: Int!
       $quantity: numeric!
       $status: String!
+      $unit: String!
       $bulkWorkOrderId: Int!
    ) {
       createBulkItemHistory(
@@ -62,6 +63,7 @@ export const CREATE_BULK_ITEM_HISTORY_FOR_BULK_WORK_ORDER = `
             bulkItemId: $bulkItemId
             quantity: $quantity
             status: $status
+            unit: $unit
             bulkWorkOrderId: $bulkWorkOrderId
          }
       ) {
@@ -85,6 +87,17 @@ export const UPDATE_BULK_ITEM = `
 export const UPDATE_BULK_ITEM_HISTORY = `
    mutation UpdateBulkItemHistory($bulkItemId: Int!, $set: inventory_bulkItemHistory_set_input) {
       updateBulkItemHistory(where: {bulkItemId:{_eq: $bulkItemId}}, _set: $set) {
+         affected_rows
+         returning {
+            id
+         }
+      }
+   }
+`
+
+export const UPDATE_BULK_ITEM_HISTORY_WITH_ID = `
+   mutation UpdateBulkItemHistory($id: Int!, $set: inventory_bulkItemHistory_set_input) {
+      updateBulkItemHistory(where: {id :{_eq: $id}}, _set: $set) {
          affected_rows
          returning {
             id

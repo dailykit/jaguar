@@ -15,21 +15,31 @@ query aws_ses($domain: String!) {
 }
 `
 
-export const GET_PAYMENT_SETTINGS = `
-query storeSettings($brandId: Int!) {
-   paymentSettings: storeSettings(where: {type: {_eq: "availability"}, identifier: {_eq: "Store Live"}}) {
-     value
-     brandSettings(where: {brandId: {_eq: $brandId}}) {
-       value
-     }
-   }
- }
-`
+export const CART = `
+query cart($id: Int!) {
+  cart(id: $id) {
+    id
+    isTest
+    amount
+    totalPrice2(args: {params: "parentCart"})
+    balancePayment
+    paymentMethodId
+    stripeCustomerId
+    statementDescriptor
+  }
+}
 
-export const GET_CUSTOMER = `
-query Customer($keycloakId: String!) {
-   customer(keycloakId: $keycloakId) {
-     isTest
-   }
- }
+`
+export const CART_PAYMENT = `
+query CART_PAYMENT($where: order_cartPayment_bool_exp!) {
+  cartPayments(where: $where) {
+    id
+    cartId
+    amount
+    paymentId
+    paymentMethodId
+    paymentStatus
+  }
+}
+
 `

@@ -1,90 +1,202 @@
 import axios from 'axios'
+import { createEvent } from 'ics'
+import { writeFileSync, readFileSync } from 'fs'
 import { client } from '../../lib/graphql'
 const fetch = require('node-fetch')
 const AWS = require('aws-sdk')
 const nodemailer = require('nodemailer')
+
 import {
    GET_SES_DOMAIN,
-   GET_PAYMENT_SETTINGS,
-   GET_CUSTOMER,
-   UPDATE_CART
+   UPDATE_CART,
+   CART,
+   CART_PAYMENT,
+   CREATE_CART_PAYMENT,
+   UPDATE_CART_PAYMENT
 } from './graphql'
 
 AWS.config.update({ region: 'us-east-2' })
 
-export const initiatePayment = async (req, res) => {
+export const handleCartPayment = async (req, res) => {
    try {
-      const data = req.body.event.data.new
-
-      if (data.status === 'CART_PROCESS') {
-         const { paymentSettings } = await client.request(
-            GET_PAYMENT_SETTINGS,
-            {
-               brandId: data.brandId
+      const payload = req.body.event.data.new
+      const { cart = {} } = await client.request(CART, { id: payload.id })
+      console.log('cart', cart)
+      if (cart.balancePayment > 0) {
+         const { cartPayments = [] } = await client.request(CART_PAYMENT, {
+            where: {
+               cartId: {
+                  _eq: cart.id
+               },
+               paymentStatus: {
+                  _neq: 'SUCCEEDED'
+               }
             }
-         )
-         const { customer } = await client.request(GET_CUSTOMER, {
-            keycloakId: data.customerKeycloakId
          })
+         console.log('CartPayments', cartPayments)
 
-         const isStripeConfigured = paymentSettings[0].brandSettings.length
-            ? paymentSettings[0].brandSettings[0].value.isStripeConfigured
-            : paymentSettings[0].value.isStripeConfigured
-         const isStoreLive = paymentSettings[0].brandSettings.length
-            ? paymentSettings[0].brandSettings[0].value.isStoreLive
-            : paymentSettings[0].value.isStoreLive
+         if (cartPayments.length > 0) {
+            if (
+               cartPayments.length > 1 ||
+               cartPayments[0].amount !== cart.balancePayment
+            ) {
+               //cancell all invalid previous cart...
+               const cancelledCartPayments = await Promise.all(
+                  cartPayments.map(async cartPayment => {
+                     try {
+                        const { updateCartPayment = {} } = await client.request(
+                           UPDATE_CART_PAYMENT,
+                           {
+                              id: cartPayment.id,
+                              _inc: {
+                                 cancelAttempt: 1
+                              }
+                           }
+                        )
+                        return updateCartPayment
+                     } catch (error) {
+                        return {
+                           success: false,
+                           message: error.message
+                        }
+                     }
+                  })
+               )
 
-         if (!isStripeConfigured || !isStoreLive || customer.isTest) {
-            await client.request(UPDATE_CART, {
-               id: data.id,
-               set: {
-                  paymentStatus: 'SUCCEEDED',
-                  isTest: true,
-                  transactionId: 'NA',
-                  transactionRemark: {
-                     id: 'NA',
-                     amount: data.amount * 100,
-                     message: 'payment bypassed',
-                     reason: 'test mode'
-                  }
-               }
-            })
-         } else {
-            if (data.amount) {
-               const body = {
-                  organizationId: process.env.ORGANIZATION_ID,
-                  cart: {
-                     id: data.id,
-                     amount: data.amount
-                  },
-                  customer: {
-                     paymentMethod: data.paymentMethodId,
-                     stripeCustomerId: data.stripeCustomerId
-                  }
-               }
-               await fetch(`${process.env.PAYMENTS_API}/api/initiate-payment`, {
-                  method: 'POST',
-                  headers: {
-                     'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(body)
-               })
-            } else {
-               await client.request(UPDATE_CART, {
-                  id: data.id,
-                  set: {
-                     paymentStatus: 'SUCCEEDED',
-                     transactionId: 'NA',
-                     transactionRemark: {
-                        id: 'NA',
-                        amount: 0,
-                        message: 'payment bypassed',
-                        reason: 'no amount for stripe transaction'
+               console.log({ cancelledCartPayments })
+
+               const { createCartPayment = {} } = await client.request(
+                  CREATE_CART_PAYMENT,
+                  {
+                     object: {
+                        cartId: cart.id,
+                        paymentRetryAttempt: 1,
+                        amount: cart.balancePayment,
+                        isTest: cart.isTest,
+                        paymentMethodId: cart.paymentMethodId,
+                        stripeCustomerId: cart.stripeCustomerId
                      }
                   }
-               })
+               )
+               res.status(200).json(createCartPayment)
+            } else {
+               const updatedCartPayment = await Promise.all(
+                  cartPayments.map(async cartPayment => {
+                     try {
+                        const { updateCartPayment = {} } = await client.request(
+                           UPDATE_CART_PAYMENT,
+                           {
+                              id: cartPayment.id,
+                              _inc: {
+                                 paymentRetryAttempt: 1
+                              }
+                           }
+                        )
+                        return updateCartPayment
+                     } catch (error) {
+                        return {
+                           success: false,
+                           message: error.message
+                        }
+                     }
+                  })
+               )
+               console.log({ updatedCartPayment })
+               res.status(200).json(updatedCartPayment)
+            }
+         } else {
+            const { createCartPayment = {} } = await client.request(
+               CREATE_CART_PAYMENT,
+               {
+                  object: {
+                     cartId: cart.id,
+                     paymentRetryAttempt: 1,
+                     amount: cart.balancePayment,
+                     isTest: cart.isTest,
+                     paymentMethodId: cart.paymentMethodId,
+                     stripeCustomerId: cart.stripeCustomerId
+                  }
+               }
+            )
+            console.log({ createCartPayment })
+            res.status(200).json(createCartPayment)
+         }
+      }
+   } catch (error) {
+      console.log(error)
+      res.status(400).json({
+         success: false,
+         message: error.message
+      })
+   }
+}
+
+export const initiatePayment = async (req, res) => {
+   try {
+      const payload = req.body.event.data.new
+      const { cart = {} } = await client.request(CART, { id: payload.cartId })
+      if (payload.id && payload.paymentStatus === 'SUCCEEDED') {
+         return res.status(200).json({
+            success: true,
+            message:
+               'Payment attempt cancelled since cart has already been paid!'
+         })
+      }
+
+      if (cart.id && cart.paymentStatus === 'SUCCEEDED') {
+         return res.status(200).json({
+            success: true,
+            message:
+               'Payment attempt cancelled since cart has already been paid!'
+         })
+      }
+
+      await client.request(UPDATE_CART, {
+         id: payload.cartId,
+         set: { amount: cart.amount + payload.amount }
+      })
+
+      if (payload.isTest || payload.amount === 0) {
+         await client.request(UPDATE_CART_PAYMENT, {
+            id: payload.id,
+            _set: {
+               paymentStatus: 'SUCCEEDED',
+               isTest: true,
+               transactionId: 'NA',
+               transactionRemark: {
+                  id: 'NA',
+                  amount: payload.amount,
+                  message: 'payment bypassed',
+                  reason: payload.isTest ? 'test mode' : 'amount 0 - free'
+               }
+            }
+         })
+         return res.status(200).json({
+            success: true,
+            message: 'Payment succeeded!'
+         })
+      }
+      if (payload.amount > 0) {
+         const body = {
+            organizationId: process.env.ORGANIZATION_ID,
+            statementDescriptor: payload.statementDescriptor || '',
+            cart: {
+               id: payload.id,
+               amount: payload.amount,
+               type: 'cartPayment'
+            },
+            customer: {
+               paymentMethod: payload.paymentMethodId,
+               stripeCustomerId: payload.stripeCustomerId
             }
          }
+         await fetch(`${process.env.PAYMENTS_API}/api/initiate-payment`, {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+         })
       }
 
       res.status(200).json({
@@ -102,8 +214,11 @@ export const initiatePayment = async (req, res) => {
 
 export const sendMail = async (req, res) => {
    try {
-      const { emailInput } = req.body.input
+      const { emailInput, inviteInput = {} } = req.body.input
       const inputDomain = emailInput.from.split('@')[1]
+      let updatedAttachments = []
+
+      console.log('InviteINput', inviteInput)
 
       // Get the DKIM details from dailycloak
       const dkimDetails = await client.request(GET_SES_DOMAIN, {
@@ -125,13 +240,58 @@ export const sendMail = async (req, res) => {
                privateKey: dkimDetails.aws_ses[0].privateKey.toString('binary')
             }
          })
+
+         //build the invite event
+         if (Object.keys(inviteInput).length) {
+            const event = {
+               start: inviteInput.start,
+               duration: inviteInput.duration,
+               title: inviteInput.title,
+               description: inviteInput.description,
+               location: inviteInput.location,
+               url: inviteInput.url,
+               geo: inviteInput.geo,
+               categories: inviteInput.categories,
+               status: inviteInput.status,
+               busyStatus: inviteInput.busyStatus,
+               organizer: inviteInput.organizer,
+               attendees: inviteInput.attendees
+            }
+            createEvent(event, async (error, value) => {
+               if (error) {
+                  console.log(error)
+                  return
+               }
+               console.log('EVENT OUTPUT', value)
+               await writeFileSync(
+                  `${__dirname}/calendarInvite/${inviteInput.title.replace(
+                     ' ',
+                     '_'
+                  )}.ics`,
+                  value
+               )
+            })
+            updatedAttachments.push({
+               filename: `${inviteInput.title.replace(' ', '_')}.ics`,
+               path: `${__dirname}/calendarInvite/${inviteInput.title.replace(
+                  ' ',
+                  '_'
+               )}.ics`,
+               contentType: 'text/calendar'
+            })
+         }
+
+         emailInput.attachments.forEach(attachment => {
+            updatedAttachments.push(attachment)
+         })
+
          // build and send the message
          const message = {
             from: emailInput.from,
             to: emailInput.to,
             subject: emailInput.subject,
             html: emailInput.html,
-            attachments: emailInput.attachments
+            attachments: updatedAttachments
          }
 
          if (dkimDetails.aws_ses[0].isVerified === true) {
@@ -222,23 +382,72 @@ export const getDistance = async (req, res) => {
    }
 }
 
+const STAFF_USERS = `
+   query users($email: String_comparison_exp!) {
+      users: settings_user(where: { email: $email }) {
+         id
+         email
+         keycloakId
+      }
+   }
+`
+
+const UPDATE_STAFF_USER = `
+   mutation updateUser(
+      $where: settings_user_bool_exp!
+      $_set: settings_user_set_input!
+   ) {
+      updateUser: update_settings_user(where: $where, _set: $_set) {
+         affected_rows
+      }
+   }
+`
+
 export const authorizeRequest = async (req, res) => {
    try {
+      const staffId = req.body.headers['Staff-Id']
+      const staffEmail = req.body.headers['Staff-Email']
+
       const keycloakId = req.body.headers['Keycloak-Id']
       const cartId = req.body.headers['Cart-Id']
       const brandId = req.body.headers['Brand-Id']
       const brandCustomerId = req.body.headers['Brand-Customer-Id']
       const source = req.body.headers['Source']
 
+      let staffUserExists = false
+      if (staffId) {
+         const { users = [] } = await client.request(STAFF_USERS, {
+            email: { _eq: staffEmail }
+         })
+         if (users.length > 0) {
+            staffUserExists = true
+            const [user] = users
+            if (user.keycloakId !== staffId) {
+               await client.request(UPDATE_STAFF_USER, {
+                  where: { email: { _eq: staffEmail } },
+                  _set: { keycloakId: staffId }
+               })
+            }
+         }
+      }
+
       return res.status(200).json({
          'X-Hasura-Role': keycloakId ? 'consumer' : 'guest-consumer',
          'X-Hasura-Source': source,
          'X-Hasura-Brand-Id': brandId,
-         ...(keycloakId && { 'X-Hasura-Keycloak-Id': keycloakId }),
+         ...(keycloakId && {
+            'X-Hasura-Keycloak-Id': keycloakId
+         }),
          ...(cartId && { 'X-Hasura-Cart-Id': cartId }),
          ...(brandCustomerId && {
             'X-Hasura-Brand-Customer-Id': brandCustomerId
-         })
+         }),
+         ...(staffId &&
+            staffUserExists && {
+               'X-Hasura-Role': 'admin',
+               'X-Hasura-Staff-Id': staffId,
+               'X-Hasura-Email-Id': staffEmail
+            })
       })
    } catch (error) {
       return res.status(404).json({ success: false, error: error.message })

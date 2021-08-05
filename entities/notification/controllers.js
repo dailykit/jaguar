@@ -29,6 +29,7 @@ export const manage = async (req, res) => {
          printConfigs
       } = notificationTypes[0]
 
+      /*
       if (isLocal || isGlobal) {
          const parsed = JSON.parse(
             template_compiler(JSON.stringify(template), req.body.event.data)
@@ -41,30 +42,35 @@ export const manage = async (req, res) => {
             }
          })
       }
+      */
 
       await Promise.all(
          printConfigs.map(async config => {
-            const parsed = JSON.parse(
-               template_compiler(
-                  JSON.stringify(config.template),
-                  req.body.event.data
+            try {
+               const parsed = JSON.parse(
+                  template_compiler(
+                     JSON.stringify(config.template),
+                     req.body.event.data
+                  )
                )
-            )
 
-            const { origin } = new URL(process.env.DATA_HUB)
-            const data = JSON.stringify(parsed.data)
-            const template = JSON.stringify(parsed.template)
+               const { origin } = new URL(process.env.DATA_HUB)
+               const data = JSON.stringify(parsed.template.data)
+               const template = JSON.stringify(parsed.template.template)
 
-            const url = `${origin}/template/?template=${template}&data=${data}`
+               const url = `${origin}/template/?template=${template}&data=${data}`
 
-            const { printJob } = await client.request(PRINT_JOB, {
-               url,
-               title: trigger.name,
-               source: 'DailyOS',
-               contentType: 'pdf_uri',
-               printerId: config.printerPrintNodeId
-            })
-            return printJob
+               const { printJob } = await client.request(PRINT_JOB, {
+                  url,
+                  title: trigger.name,
+                  source: 'DailyOS',
+                  contentType: 'pdf_uri',
+                  printerId: config.printerPrintNodeId
+               })
+               return printJob
+            } catch (error) {
+               throw error
+            }
          })
       )
 
@@ -74,7 +80,6 @@ export const manage = async (req, res) => {
                let html = await getHtml(config.template, req.body.event.data)
 
                if (!config.email) return
-
                await client.request(SEND_MAIL, {
                   emailInput: {
                      from: `"${emailFrom.name}" ${emailFrom.email}`,
@@ -85,7 +90,7 @@ export const manage = async (req, res) => {
                   }
                })
             } catch (error) {
-               throw Error(error.message)
+               throw error
             }
          })
       )
@@ -177,14 +182,16 @@ const getHtml = async (template, data) => {
       )
 
       const { origin } = new URL(process.env.DATA_HUB)
-      const template_data = encodeURI(JSON.stringify(parsed.data))
-      const template_options = encodeURI(JSON.stringify(parsed.template))
+      const template_data = encodeURI(JSON.stringify(parsed.template.data))
+      const template_options = encodeURI(
+         JSON.stringify(parsed.template.template)
+      )
 
       const url = `${origin}/template/?template=${template_options}&data=${template_data}`
 
       const { data: html } = await axios.get(url)
       return html
    } catch (error) {
-      throw Error(error.message)
+      throw error
    }
 }

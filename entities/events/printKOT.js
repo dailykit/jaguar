@@ -430,45 +430,6 @@ const SETTINGS = `
    }
 `
 
-const ORDER_BY_STATIONS = `
-   query stations($orderId: Int_comparison_exp!) {
-      stations(
-         where: {
-            _or: [
-               { orderInventoryProductsAssembly: { orderId: $orderId } }
-               { orderMealKitProductsAssembly: { orderId: $orderId } }
-               { orderReadyToEatProductsAssembly: { orderId: $orderId } }
-            ]
-         }
-      ) {
-         id
-         name
-         defaultKotPrinterId
-         kotPrinters: attachedKotPrinters {
-            id: printNodeId
-         }
-      }
-   }
-`
-
-const SACHET_BY_STATIONS = `
-   query stations($orderId: Int_comparison_exp!) {
-      stations(
-         where: {
-            orderSachetsPacking: { orderMealKitProduct: { orderId: $orderId } }
-         }
-         order_by: { id: asc }
-      ) {
-         id
-         name
-         defaultKotPrinterId
-         kotPrinters: attachedKotPrinters {
-            id: printNodeId
-         }
-      }
-   }
-`
-
 const PRINT_JOB = `
    mutation createPrintJob(
       $url: String!
@@ -492,7 +453,7 @@ const PRINT_JOB = `
 
 const CART_ITEMS = `
    query cartItems {
-      cartItems: order_cartItemView(
+      cartItems(
          where: {
             levelType: {
                _in: ["orderItem", "orderItemSachet", "orderItemSachetComponent"]

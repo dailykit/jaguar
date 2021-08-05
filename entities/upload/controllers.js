@@ -8,40 +8,63 @@ const s3 = new AWS.S3()
 
 export const upload = (request, response) => {
    const form = new multiparty.Form()
-   form.parse(request, async (error, fields, files) => {
+   form.parse(request, async (error, fields, list) => {
       if (error) throw new Error(error)
       try {
-         const [file] = files.file
-         const buffer = fs.readFileSync(file.path)
-         let type = await fileType.fromBuffer(buffer)
-         const timestamp = Date.now().toString().slice(-5)
-         let originalFilename = `${timestamp}-${file.originalFilename
-            .split('.')
-            .slice(0, -1)
-            .join('.')}`
-
-         let name
-         if (type && type.mime.includes('image')) {
-            name = `images/${originalFilename}`
-         } else if (type && type.mime.includes('video')) {
-            name = `videos/${originalFilename}`
-         } else {
-            name = `misc/${originalFilename}`
-            let ext = file.originalFilename.split('.').slice(-1).join('')
-            let mime
-            if (ext === 'csv') {
-               mime = 'text/csv'
-            } else if (ext === 'svg') {
-               mime = 'image/svg+xml'
-            } else if (ext === 'xls') {
-               mime = 'application/vnd.ms-excel'
+         const files = Object.keys(list).map(key => {
+            if (
+               key in list &&
+               Array.isArray(list[key]) &&
+               list[key].length > 0
+            ) {
+               return list[key][0]
             }
+            return null
+         })
 
-            type = { ext, mime }
-         }
-         const data = await uploadFile(buffer, name, type, fields.metadata)
-         return response.status(200).send(data)
+         const result = await Promise.all(
+            files.map(async file => {
+               try {
+                  const buffer = fs.readFileSync(file.path)
+                  let type = await fileType.fromBuffer(buffer)
+                  const timestamp = Date.now().toString().slice(-5)
+                  let originalFilename = `${timestamp}-${file.originalFilename
+                     .split('.')
+                     .slice(0, -1)
+                     .join('.')}`
+
+                  let name
+                  if (type && type.mime.includes('image')) {
+                     name = `images/${originalFilename}`
+                  } else if (type && type.mime.includes('video')) {
+                     name = `videos/${originalFilename}`
+                  } else {
+                     name = `misc/${originalFilename}`
+                     let ext = file.originalFilename
+                        .split('.')
+                        .slice(-1)
+                        .join('')
+                     let mime
+                     if (ext === 'csv') {
+                        mime = 'text/csv'
+                     } else if (ext === 'svg') {
+                        mime = 'image/svg+xml'
+                     } else if (ext === 'xls') {
+                        mime = 'application/vnd.ms-excel'
+                     }
+
+                     type = { ext, mime }
+                  }
+                  const data = await uploadFile(buffer, name, type)
+                  return data
+               } catch (error) {
+                  return error
+               }
+            })
+         )
+         return response.status(200).send(result)
       } catch (error) {
+         console.log(error)
          return response.status(400).send(error)
       }
    })
@@ -70,7 +93,7 @@ export const list = async (req, res) => {
                   key: item.Key,
                   size: item.Size,
                   url: createUrl(item.Key),
-                  metadata: result.Metadata,
+                  // metadata: result.Metadata,
                   name: extractName(item.Key)
                }
             } catch (error) {

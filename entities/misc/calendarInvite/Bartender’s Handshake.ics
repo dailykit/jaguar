@@ -1,0 +1,26 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+CALSCALE:GREGORIAN
+PRODID:adamgibbons/ics
+METHOD:PUBLISH
+X-PUBLISHED-TTL:PT1H
+BEGIN:VEVENT
+UID:dd87d508-2d7c-4d87-9046-05eff741747a
+SUMMARY:Bartender’s Handshake
+DTSTAMP:20210603T125300Z
+DTSTART:20210609T050006Z
+DESCRIPTION:<p>I get asked many questions about my job - including what bar
+	tenders  drink when they go out. We keep it simple. Give us a good beer an
+	d  strong shot and we're happy. We call it a Bartender's Handshake in the 
+	 industry - not to be confused with the cocktail drink that is also  calle
+	d the Bartender's Handshake.But the two couldn't be more different.  In th
+	is experience\, we'll start by cheering with your favorite beer and  shot 
+	before making the cocktail version\, a delicious daiquiri on ice.</p>
+URL:https://ohyay.co/viewer.html?wsid=ws_DkKHtfMc&invitecode=fda98514-3f9e-
+	495a-9534-ddc55bb0ca26
+STATUS:CONFIRMED
+ORGANIZER;CN=Admin:mailto:st.deepak15@gmail.com
+X-MICROSOFT-CDO-BUSYSTATUS:BUSY
+DURATION:PT45M
+END:VEVENT
+END:VCALENDAR

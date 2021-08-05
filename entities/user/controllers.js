@@ -6,6 +6,10 @@ export const manage = async (req, res) => {
    let requestType
    try {
       switch (req.body.event.op) {
+         case 'INSERT':
+            requestType = 'insertion'
+            user.create(req.body.event.data.new, res)
+            break
          case 'UPDATE':
             requestType = 'updation'
             user.create(req.body.event.data.new, res)

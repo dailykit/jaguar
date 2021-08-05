@@ -8,6 +8,7 @@ import {
 } from '../graphql/mutations'
 import {
    GET_BULK_ITEM_HISTORIES_WITH_SACHET_WORK_ORDER_ID,
+   GET_BULK_ITEM,
    GET_SACHET_ITEM_HISTORIES
 } from '../graphql/queries'
 
@@ -77,6 +78,10 @@ export const handleSachetWorkOrderCreateUpdate = async (req, res, next) => {
          })
          return
       } else {
+         const { bulkItem } = await client.request(GET_BULK_ITEM, {
+            id: inputBulkItemId
+         })
+
          // create sachetItemHistory and bulkItemHistory if doesn't exists
          await client.request(CREATE_SACHET_ITEM_HISTORY, {
             objects: [
@@ -93,6 +98,7 @@ export const handleSachetWorkOrderCreateUpdate = async (req, res, next) => {
             objects: [
                {
                   quantity: -inputQuantity,
+                  unit: bulkItem.unit,
                   status: 'PENDING',
                   bulkItemId: inputBulkItemId,
                   sachetWorkOrderId

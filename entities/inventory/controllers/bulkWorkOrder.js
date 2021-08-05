@@ -4,7 +4,11 @@ import {
    CREATE_BULK_ITEM_HISTORY_FOR_BULK_WORK_ORDER,
    UPDATE_BULK_ITEM_HISTORIES_WITH_BULK_WORK_ORDER_ID
 } from '../graphql/mutations'
-import { GET_BULK_ITEM_HISTORIES_WITH_BULK_WORK_ORDER_ID } from '../graphql/queries'
+import {
+   GET_BULK_ITEM_HISTORIES_WITH_BULK_WORK_ORDER_ID,
+   GET_BULK_ITEM
+} from '../graphql/queries'
+import { getCalculatedValue } from './utils'
 
 // Done
 // test -> passes -> finally
@@ -54,17 +58,33 @@ export const handleBulkWorkOrderCreateUpdate = async (req, res, next) => {
             message: 'histories updated'
          })
       } else {
+         const { bulkItem: inputBulkItem } = await client.request(
+            GET_BULK_ITEM,
+            {
+               id: inputBulkItemId
+            }
+         )
+
+         const { bulkItem: outputBulkItem } = await client.request(
+            GET_BULK_ITEM,
+            {
+               id: outputBulkItemId
+            }
+         )
+
          // create 2 bulkItemHistory for input and for output
          await client.request(CREATE_BULK_ITEM_HISTORY_FOR_BULK_WORK_ORDER, {
             bulkItemId: outputBulkItemId,
             quantity: outputQuantity,
             status: 'PENDING',
+            unit: outputBulkItem.unit,
             bulkWorkOrderId: bulkWorkOrderId
          })
 
          await client.request(CREATE_BULK_ITEM_HISTORY_FOR_BULK_WORK_ORDER, {
             bulkItemId: inputBulkItemId,
-            quantity: -inputQuantity,
+            quantity: -inputQuantity, // this should be calculated
+            unit: inputBulkItem.unit,
             status: 'PENDING',
             bulkWorkOrderId: bulkWorkOrderId
          })
@@ -74,6 +94,7 @@ export const handleBulkWorkOrderCreateUpdate = async (req, res, next) => {
          })
       }
    } catch (error) {
+      console.log(error)
       next(error)
    }
 }

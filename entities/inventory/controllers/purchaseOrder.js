@@ -19,6 +19,7 @@ export const handlePurchaseOrderCreateUpdate = async (req, res, next) => {
          bulkItemId,
          orderQuantity,
          status,
+         unit,
          packagingId
       } = req.body.event.data.new
 
@@ -62,6 +63,7 @@ export const handlePurchaseOrderCreateUpdate = async (req, res, next) => {
                {
                   bulkItemId,
                   quantity: orderQuantity,
+                  unit,
                   status: 'PENDING',
                   purchaseOrderItemId: id
                }

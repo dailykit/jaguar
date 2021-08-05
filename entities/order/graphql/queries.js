@@ -256,6 +256,17 @@ export const EMAIL_SETTINGS = `
             email: value(path: "email")
             template: value(path: "template")
          }
+         subs_new: subscriptionStoreSettings(
+            where: {
+               subscriptionStoreSetting: {
+                  identifier: { _eq: "Email Notification" }
+               }
+            }
+         ) {
+            name: value(path: "name")
+            email: value(path: "email")
+            template: value(path: "template")
+         }
       }
    }
 `

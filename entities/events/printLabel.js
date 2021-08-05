@@ -10,7 +10,9 @@ export const printLabel = async (req, res) => {
             message: `Not available for status: ${status}`
          })
 
-      const { cartItems = [] } = await client.request(CART_ITEM, { id })
+      const { cartItems = [] } = await client.request(CART_ITEM, {
+         id: { _eq: id }
+      })
 
       const [cartItem] = cartItems
 
@@ -21,11 +23,17 @@ export const printLabel = async (req, res) => {
          })
 
       if (!cartItem.operationConfigId)
-         throw Error('No operation config is linked.')
+         return res
+            .status(200)
+            .json({ success: true, message: 'No operation config is linked.' })
       if (!cartItem.operationConfig.labelTemplateId)
-         throw Error('No label template is provided.')
+         return res
+            .status(200)
+            .json({ success: true, message: 'No label template is provided.' })
       if (!cartItem.operationConfig.stationId)
-         throw Error('Assembly station Id is missing.')
+         return res
+            .status(200)
+            .json({ success: true, message: 'Assembly station Id is missing.' })
 
       const station = cartItem.operationConfig.station
 
@@ -55,7 +63,7 @@ export const printLabel = async (req, res) => {
                station.attachedLabelPrinters[0].printNodeId
 
             const url = new URL(process.env.DATA_HUB).origin + '/template/'
-            const template = `{"name":${labelTemplate.name},"type":"label","format":"pdf"}`
+            const template = `{"name":"${labelTemplate.name}","type":"label","format":"pdf"}`
 
             await client.request(PRINT_JOB, {
                printerId,
@@ -117,7 +125,7 @@ const PRINT_JOB = `
 
 const CART_ITEM = `
    query cartItems($id: Int_comparison_exp!) {
-      cartItems: order_cartItemView(where: { id: $id }) {
+      cartItems(where: { id: $id }) {
          id
          status
          levelType

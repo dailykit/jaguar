@@ -102,7 +102,6 @@ export const sendMail = async (req, res) => {
    try {
       const { emailInput } = req.body.input
       const inputDomain = emailInput.from.split('@')[1]
-      console.log({ emailInput })
       // Get the DKIM details from dailycloak
       const dkimDetails = await client.request(GET_SES_DOMAIN, {
          domain: inputDomain
@@ -126,7 +125,6 @@ export const sendMail = async (req, res) => {
          let html = emailInput.html
 
          if (emailInput.includeHeader && emailInput.brandId) {
-            console.log('inside includeHeader method')
             // getting the header html and concatenating it with the email html
             const headerHtml = await globalTemplate({
                brandId: emailInput.brandId,

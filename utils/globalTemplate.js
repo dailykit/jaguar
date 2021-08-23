@@ -21,12 +21,9 @@ query GET_FILE_PATH($id: Int!) {
 
 export const globalTemplate = async ({ brandId, identifier }) => {
    try {
-      console.log({ brandId, identifier })
       const { brands_brand_subscriptionStoreSetting: settings } =
          await client.request(GET_STORE_SETTING, { brandId, identifier })
-      console.log('before settings', settings)
       if (settings.length > 0) {
-         console.log('inside settings', settings)
          const [setting] = settings
          const { editor_file_by_pk: file } = await client.request(
             GET_FILE_PATH,
@@ -43,7 +40,6 @@ export const globalTemplate = async ({ brandId, identifier }) => {
          )
          const url = `${origin}/template/?template=${template_options}&data=${template_variables}`
          const { data: html } = await axios.get(url)
-         console.log('from util', html)
          return html
       }
       return null

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { client } from '../../lib/graphql'
+import { globalTemplate } from '../../utils'
 const fetch = require('node-fetch')
 const AWS = require('aws-sdk')
 const nodemailer = require('nodemailer')
@@ -101,7 +102,7 @@ export const sendMail = async (req, res) => {
    try {
       const { emailInput } = req.body.input
       const inputDomain = emailInput.from.split('@')[1]
-
+      console.log({ emailInput })
       // Get the DKIM details from dailycloak
       const dkimDetails = await client.request(GET_SES_DOMAIN, {
          domain: inputDomain
@@ -122,12 +123,32 @@ export const sendMail = async (req, res) => {
                privateKey: dkimDetails.aws_ses[0].privateKey.toString('binary')
             }
          })
+         let html = emailInput.html
+
+         if (emailInput.includeHeader && emailInput.brandId) {
+            console.log('inside includeHeader method')
+            // getting the header html and concatenating it with the email html
+            const headerHtml = await globalTemplate({
+               brandId: emailInput.brandId,
+               identifier: 'globalEmailHeader' // this identifier should also come from datahub and not hardcoded
+            })
+            html = headerHtml ? headerHtml + html : html
+         }
+         if (emailInput.includeFooter && emailInput.brandId) {
+            // getting the footer html and concatenating it with the email html
+            const footerHtml = await globalTemplate({
+               brandId: emailInput.brandId,
+               identifier: 'globalEmailFooter'
+            })
+            html = footerHtml ? html + footerHtml : html
+         }
+
          // build and send the message
          const message = {
             from: emailInput.from,
             to: emailInput.to,
             subject: emailInput.subject,
-            html: emailInput.html,
+            html,
             attachments: emailInput.attachments
          }
 

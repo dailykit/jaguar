@@ -1,0 +1,23 @@
+import { emailTrigger } from '../../utils'
+
+export const emailTemplateHandler = async (req, res) => {
+   try {
+      const { payload = null } = req.body
+      console.log('payload', payload)
+      const parsedPayload = JSON.parse(payload)
+      if (parsedPayload) {
+         const result = await emailTrigger({
+            title: parsedPayload.emailTriggerTitle,
+            variables: parsedPayload,
+            to: parsedPayload.email
+         })
+         res.status(result.success ? 200 : 400).json(result)
+      }
+   } catch (error) {
+      console.log(error)
+      res.status(500).json({
+         status: false,
+         message: error.message
+      })
+   }
+}

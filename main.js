@@ -40,7 +40,8 @@ import {
 } from './entities/events'
 import {
    handleCustomerSignup,
-   handleSubscriptionCancelled
+   handleSubscriptionCancelled,
+   emailTemplateHandler
 } from './entities/emails'
 const app = express()
 
@@ -99,6 +100,7 @@ app.post(
    '/webhook/emails/handle-subscription-cancelled',
    handleSubscriptionCancelled
 )
+app.post('/webhook/email-template-handler', emailTemplateHandler)
 
 app.use('/api/store', StoreRouter)
 

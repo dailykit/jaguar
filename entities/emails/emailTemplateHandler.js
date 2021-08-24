@@ -3,7 +3,6 @@ import { emailTrigger } from '../../utils'
 export const emailTemplateHandler = async (req, res) => {
    try {
       const { payload = null } = req.body
-      console.log('payload', payload)
       const parsedPayload = JSON.parse(payload)
       if (parsedPayload) {
          const result = await emailTrigger({

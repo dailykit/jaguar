@@ -69,7 +69,7 @@ export const emailTrigger = async ({
                subjectLineTemplate
             )
 
-            await client.request(SEND_MAIL, {
+            const { sendEmail } = await client.request(SEND_MAIL, {
                emailInput: {
                   from: fromEmail,
                   to,
@@ -81,10 +81,17 @@ export const emailTrigger = async ({
                   includeFooter
                }
             })
-         } else {
+            return sendEmail
+         }
+         if (!proceed) {
             console.log(
                'Could not send email as required variables were not provided'
             )
+            return {
+               success: false,
+               message:
+                  'Could not send email as required variables were not provided'
+            }
          }
       }
    } catch (error) {

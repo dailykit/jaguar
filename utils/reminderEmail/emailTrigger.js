@@ -3,7 +3,36 @@ import { client } from '../../lib/graphql'
 import { template_compiler } from '..'
 import { SEND_MAIL } from '../../entities/occurence/graphql'
 
-export const emailTrigger = async ({ title, variables = {}, to }) => {
+export const GET_TEMPLATE_SETTINGS = `
+   query templateSettings($title: String!) {
+      templateSettings: notifications_emailTriggers(
+         where: { title: { _eq: $title } }
+      ) {
+         id
+         title
+         requiredVar: var
+         subjectLineTemplate
+         functionFile {
+            fileName
+            path
+         }
+         emailTemplateFile {
+            fileName
+            path
+         }
+         fromEmail
+      }
+   }
+`
+
+export const emailTrigger = async ({
+   title,
+   variables = {},
+   to,
+   brandId = null,
+   includeHeader = false,
+   includeFooter = false
+}) => {
    try {
       const { templateSettings = [] } = await client.request(
          GET_TEMPLATE_SETTINGS,
@@ -40,19 +69,29 @@ export const emailTrigger = async ({ title, variables = {}, to }) => {
                subjectLineTemplate
             )
 
-            await client.request(SEND_MAIL, {
+            const { sendEmail } = await client.request(SEND_MAIL, {
                emailInput: {
                   from: fromEmail,
                   to,
                   subject: subjectLine,
                   attachments: [],
-                  html
+                  html,
+                  brandId,
+                  includeHeader,
+                  includeFooter
                }
             })
-         } else {
+            return sendEmail
+         }
+         if (!proceed) {
             console.log(
                'Could not send email as required variables were not provided'
             )
+            return {
+               success: false,
+               message:
+                  'Could not send email as required variables were not provided'
+            }
          }
       }
    } catch (error) {
@@ -103,25 +142,3 @@ const getHtml = async (
       throw error
    }
 }
-
-export const GET_TEMPLATE_SETTINGS = `
-   query templateSettings($title: String!) {
-      templateSettings: notifications_emailTriggers(
-         where: { title: { _eq: $title } }
-      ) {
-         id
-         title
-         requiredVar: var
-         subjectLineTemplate
-         functionFile {
-            fileName
-            path
-         }
-         emailTemplateFile {
-            fileName
-            path
-         }
-         fromEmail
-      }
-   }
-`

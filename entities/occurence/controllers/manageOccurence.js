@@ -73,7 +73,7 @@ export const manageOccurence = async (req, res) => {
                   )
                      return res.status(200).json({
                         success: true,
-                        message: `Reminder email functionality is disabled`
+                        message: `Manage occurence functionality is disabled`
                      })
                }
 

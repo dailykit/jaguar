@@ -49,7 +49,7 @@ export const autoSelect = async (req, res) => {
                   )
                      return {
                         success: true,
-                        message: `Reminder email functionality is disabled`
+                        message: `Auto select functionality is disabled`
                      }
                }
 
@@ -124,8 +124,9 @@ export const autoSelect = async (req, res) => {
                      }
 
                   const method = require(`../../../options/${
-                     subscriptionOccurence.subscriptionAutoSelectOption &&
                      subscriptionOccurence.subscriptionAutoSelectOption
+                        ? subscriptionOccurence.subscriptionAutoSelectOption
+                        : 'random.js'
                   }`)
 
                   const sortedProducts = await method.default(products)

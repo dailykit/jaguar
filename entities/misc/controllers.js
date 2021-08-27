@@ -144,7 +144,7 @@ export const sendMail = async (req, res) => {
          // build and send the message
          const message = {
             from: emailInput.from,
-            to: emailInput.to,
+            to: emailInput.to.split(','), // so that you can send to multiple recipients just pass mutiple emails separated by comma
             subject: emailInput.subject,
             html,
             attachments: emailInput.attachments

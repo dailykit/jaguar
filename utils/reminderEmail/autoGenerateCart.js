@@ -10,7 +10,8 @@ import { statusLogger } from './'
 export const autoGenerateCart = async ({
    keycloakId,
    brand_customerId,
-   subscriptionOccurenceId
+   subscriptionOccurenceId,
+   hoursBefore
 }) => {
    await statusLogger({
       keycloakId,
@@ -76,7 +77,8 @@ export const autoGenerateCart = async ({
          await axios.post(url, {
             keycloakId,
             brand_customerId,
-            subscriptionOccurenceId
+            subscriptionOccurenceId,
+            hoursBefore
          })
       } else {
          let _cartId = await createCart({
@@ -106,7 +108,8 @@ export const autoGenerateCart = async ({
             await axios.post(url, {
                keycloakId,
                brand_customerId,
-               subscriptionOccurenceId
+               subscriptionOccurenceId,
+               hoursBefore
             })
          }
       }

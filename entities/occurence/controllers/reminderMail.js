@@ -4,7 +4,7 @@ import { emailTrigger, autoGenerateCart, statusLogger } from '../../../utils'
 
 export const reminderMail = async (req, res) => {
    try {
-      const { subscriptionOccurenceId } = req.body.payload
+      const { subscriptionOccurenceId, hoursBefore } = req.body.payload
       const { subscriptionOccurences = [] } = await client.request(
          GET_CUSTOMERS_DETAILS,
          {
@@ -94,10 +94,12 @@ export const reminderMail = async (req, res) => {
                         'Sent reminder email alerting customer that this week is skipped.'
                   })
                   await emailTrigger({
-                     title: 'weekSkipped',
+                     title: 'subscription-reminder-email',
                      variables: {
                         brandCustomerId: id,
-                        subscriptionOccurenceId
+                        subscriptionOccurenceId,
+                        hoursBefore,
+                        case: 'weekSkipped'
                      },
                      to: customerEmail.email
                   })
@@ -119,10 +121,12 @@ export const reminderMail = async (req, res) => {
                      message: `Sent reminder email for previously auto generated cart.`
                   })
                   await emailTrigger({
-                     title: 'autoGenerateCart',
+                     title: 'subscription-reminder-email',
                      variables: {
                         brandCustomerId: id,
-                        subscriptionOccurenceId
+                        subscriptionOccurenceId,
+                        hoursBefore,
+                        case: 'autoGenerateCart'
                      },
                      to: customerEmail.email
                   })
@@ -148,10 +152,12 @@ export const reminderMail = async (req, res) => {
                      message: `Sending reminder email for existing cart.`
                   })
                   await emailTrigger({
-                     title: 'allSetCart',
+                     title: 'subscription-reminder-email',
                      variables: {
                         brandCustomerId: id,
-                        subscriptionOccurenceId
+                        subscriptionOccurenceId,
+                        hoursBefore,
+                        case: 'allSetCart'
                      },
                      to: customerEmail.email
                   })
@@ -180,7 +186,8 @@ export const reminderMail = async (req, res) => {
                      await autoGenerateCart({
                         keycloakId,
                         brand_customerId: id,
-                        subscriptionOccurenceId
+                        subscriptionOccurenceId,
+                        hoursBefore
                      })
                      return {
                         success: true,

@@ -20,8 +20,12 @@ export const autoSelect = async (req, res) => {
       const result = await Promise.all(
          rows.map(async row => {
             try {
-               const { keycloakId, brand_customerId, subscriptionOccurenceId } =
-                  row
+               const {
+                  keycloakId,
+                  brand_customerId,
+                  subscriptionOccurenceId,
+                  hoursBefore
+               } = row
                const { subscriptionOccurences = [] } = await client.request(
                   SUBSCRIPTION_OCCURENCES,
                   {
@@ -103,10 +107,12 @@ export const autoSelect = async (req, res) => {
                         'Sent reminder email alerting customer that this week is skipped.'
                   })
                   await emailTrigger({
-                     title: 'weekSkipped',
+                     title: 'subscription-reminder-email',
                      variables: {
                         subscriptionOccurenceId,
-                        brandCustomerId: brand_customerId
+                        brandCustomerId: brand_customerId,
+                        hoursBefore,
+                        case: 'weekSkipped'
                      },
                      to: brand_customer.customer.email
                   })
@@ -162,10 +168,12 @@ export const autoSelect = async (req, res) => {
                            'Sent email reminding customer that product has been added for this week.'
                      })
                      await emailTrigger({
-                        title: 'autoGenerateCart',
+                        title: 'subscription-reminder-email',
                         variables: {
                            subscriptionOccurenceId,
-                           brandCustomerId: brand_customerId
+                           brandCustomerId: brand_customerId,
+                           hoursBefore,
+                           case: 'autoGenerateCart'
                         },
                         to: brand_customer.customer.email
                      })

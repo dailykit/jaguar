@@ -102,6 +102,11 @@ export const sendMail = async (req, res) => {
    try {
       const { emailInput } = req.body.input
       const inputDomain = emailInput.from.split('@')[1]
+      const {
+         includeHeader = true,
+         includeFooter = true,
+         brandId = null
+      } = emailInput
       // Get the DKIM details from dailycloak
       const dkimDetails = await client.request(GET_SES_DOMAIN, {
          domain: inputDomain
@@ -124,18 +129,18 @@ export const sendMail = async (req, res) => {
          })
          let html = emailInput.html
 
-         if (emailInput.includeHeader && emailInput.brandId) {
+         if (includeHeader) {
             // getting the header html and concatenating it with the email html
             const headerHtml = await globalTemplate({
-               brandId: emailInput.brandId,
+               brandId,
                identifier: 'globalEmailHeader' // this identifier should also come from datahub and not hardcoded
             })
             html = headerHtml ? headerHtml + html : html
          }
-         if (emailInput.includeFooter && emailInput.brandId) {
+         if (includeFooter) {
             // getting the footer html and concatenating it with the email html
             const footerHtml = await globalTemplate({
-               brandId: emailInput.brandId,
+               brandId,
                identifier: 'globalEmailFooter'
             })
             html = footerHtml ? html + footerHtml : html

@@ -3,20 +3,36 @@ import { GET_CUSTOMERS_DETAILS } from '../graphql'
 import { emailTrigger, autoGenerateCart, statusLogger } from '../../../utils'
 
 export const reminderMail = async (req, res) => {
+   console.log('recived request on reminder email')
    try {
-      const { subscriptionOccurenceId, hoursBefore } = req.body.payload
+      let payload
+      if (typeof req.body.payload === 'string') {
+         payload = JSON.parse(req.body.payload)
+      } else {
+         payload = req.body.payload
+      }
+      console.log('reminder payload', payload)
+      const { subscriptionOccurenceId, hoursBefore } = payload
       const { subscriptionOccurences = [] } = await client.request(
          GET_CUSTOMERS_DETAILS,
          {
             id: subscriptionOccurenceId
          }
       )
+      console.log(
+         'fetched customers details and their detail for this particular occurence',
+         { subscriptionOccurences }
+      )
 
-      if (subscriptionOccurences.length === 0)
+      if (subscriptionOccurences.length === 0) {
+         console.log(
+            `No customer subscribed to subscription that has subscriptionOccurenceId: ${subscriptionOccurenceId}`
+         )
          return res.status(200).json({
             success: false,
-            message: `No subscription occurence linked to id ${subscriptionOccurenceId}`
+            message: `No customer subscribed to subscription that has subscriptionOccurenceId: ${subscriptionOccurenceId}`
          })
+      }
 
       const [occurence] = subscriptionOccurences
       const {
@@ -31,32 +47,40 @@ export const reminderMail = async (req, res) => {
          })
 
       const { settings: globalSettings, brand_customers = [] } = subscription
-
+      console.log({ brand_customers })
       if (
          globalSettings.isReminderEmail === false ||
          localSettings.isReminderEmail === false
-      )
+      ) {
+         console.log(`Reminder email functionality is disabled`)
          return res.status(200).json({
             success: true,
             message: `Reminder email functionality is disabled`
          })
+      }
 
-      if (brand_customers.length === 0)
+      if (brand_customers.length === 0) {
+         console.log(
+            `There are no brand customers yet linked to subscription id ${subscriptionId}`
+         )
          return res.status(200).json({
             success: false,
             message: `There are no brand customers yet linked to subscription id ${subscriptionId}`
          })
+      }
 
       const result = await Promise.all(
          brand_customers.map(async customer => {
             try {
                const {
                   id,
+                  brandId,
                   keycloakId,
                   customerEmail,
                   isAutoSelectOptOut,
                   subscriptionOccurences = []
                } = customer
+               console.log({ brand_customers_subscriptionOccurences: customer })
 
                await statusLogger({
                   keycloakId,
@@ -67,13 +91,23 @@ export const reminderMail = async (req, res) => {
                      'Initiating reminder emails and auto product selection system.'
                })
 
-               if (subscriptionOccurences.length === 0)
+               if (subscriptionOccurences.length === 0) {
+                  console.log(
+                     `No subscription customer linked with this brandCustomerId: ${id}.`
+                  )
+                  await autoGenerateCart({
+                     keycloakId,
+                     brand_customerId: id,
+                     subscriptionOccurenceId,
+                     hoursBefore,
+                     brandId
+                  })
                   return {
-                     success: false,
-                     data: { keycloakId, subscriptionOccurenceId },
-                     message:
-                        'No subscription customer linked with this brand customer.'
+                     success: true,
+                     message: 'auto generate cart',
+                     data: { keycloakId, subscriptionOccurenceId }
                   }
+               }
 
                const [occurence] = subscriptionOccurences
                const {
@@ -99,9 +133,11 @@ export const reminderMail = async (req, res) => {
                         brandCustomerId: id,
                         subscriptionOccurenceId,
                         hoursBefore,
-                        case: 'weekSkipped'
+                        case: 'weekSkipped',
+                        brandId
                      },
-                     to: customerEmail.email
+                     to: customerEmail.email,
+                     brandId
                   })
                   return {
                      success: true,
@@ -126,9 +162,11 @@ export const reminderMail = async (req, res) => {
                         brandCustomerId: id,
                         subscriptionOccurenceId,
                         hoursBefore,
-                        case: 'autoGenerateCart'
+                        case: 'autoGenerateCart',
+                        brandId
                      },
-                     to: customerEmail.email
+                     to: customerEmail.email,
+                     brandId
                   })
                   return {
                      success: true,
@@ -157,9 +195,11 @@ export const reminderMail = async (req, res) => {
                         brandCustomerId: id,
                         subscriptionOccurenceId,
                         hoursBefore,
-                        case: 'allSetCart'
+                        case: 'allSetCart',
+                        brandId
                      },
-                     to: customerEmail.email
+                     to: customerEmail.email,
+                     brandId
                   })
                   return {
                      success: true,
@@ -187,7 +227,8 @@ export const reminderMail = async (req, res) => {
                         keycloakId,
                         brand_customerId: id,
                         subscriptionOccurenceId,
-                        hoursBefore
+                        hoursBefore,
+                        brandId
                      })
                      return {
                         success: true,

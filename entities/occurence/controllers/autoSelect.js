@@ -24,7 +24,8 @@ export const autoSelect = async (req, res) => {
                   keycloakId,
                   brand_customerId,
                   subscriptionOccurenceId,
-                  hoursBefore
+                  hoursBefore,
+                  brandId
                } = row
                const { subscriptionOccurences = [] } = await client.request(
                   SUBSCRIPTION_OCCURENCES,
@@ -112,9 +113,11 @@ export const autoSelect = async (req, res) => {
                         subscriptionOccurenceId,
                         brandCustomerId: brand_customerId,
                         hoursBefore,
-                        case: 'weekSkipped'
+                        case: 'weekSkipped',
+                        brandId
                      },
-                     to: brand_customer.customer.email
+                     to: brand_customer.customer.email,
+                     brandId
                   })
                   return {
                      data: row,
@@ -173,9 +176,11 @@ export const autoSelect = async (req, res) => {
                            subscriptionOccurenceId,
                            brandCustomerId: brand_customerId,
                            hoursBefore,
-                           case: 'autoGenerateCart'
+                           case: 'autoGenerateCart',
+                           brandId
                         },
-                        to: brand_customer.customer.email
+                        to: brand_customer.customer.email,
+                        brandId
                      })
                      return {
                         data: row,

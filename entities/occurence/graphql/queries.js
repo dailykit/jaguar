@@ -13,7 +13,7 @@ export const GET_TEMPLATE_SETTINGS = `
         brands_brand_subscriptionStoreSetting(where: {subscriptionStoreSetting: {identifier: {_eq: $identifier} }}) {
             value
         }
-    }   
+    }
 `
 
 export const GET_CUSTOMERS_DETAILS = `
@@ -32,6 +32,7 @@ export const GET_CUSTOMERS_DETAILS = `
                }
             ) {
                id
+               brandId
                keycloakId
                isAutoSelectOptOut
                customerEmail: customer {

@@ -11,7 +11,8 @@ export const autoGenerateCart = async ({
    keycloakId,
    brand_customerId,
    subscriptionOccurenceId,
-   hoursBefore
+   hoursBefore,
+   brandId
 }) => {
    await statusLogger({
       keycloakId,
@@ -25,11 +26,18 @@ export const autoGenerateCart = async ({
          brandCustomerId: brand_customerId,
          subscriptionOccurenceId
       })
+      console.log(
+         'fetch brandcustomer details for subscription occrences',
+         brandCustomers
+      )
 
       if (
          brandCustomers.length > 0 &&
          brandCustomers[0].subscriptionOccurences.length === 0
       ) {
+         console.log(
+            'no occurence found for this brandId, so initiating create subscription occurence'
+         )
          await client.request(INSERT_SUBS_OCCURENCE, {
             object: {
                isAuto: true,
@@ -74,26 +82,30 @@ export const autoGenerateCart = async ({
          new URL(process.env.DATA_HUB).origin
       }/webhook/occurence/auto-select`
       if (cartId) {
+         console.log('cartId found, so executing auto-select')
          await axios.post(url, {
             keycloakId,
             brand_customerId,
             subscriptionOccurenceId,
-            hoursBefore
+            hoursBefore,
+            brandId
          })
       } else {
+         console.log('cartId not found, so executing create cart')
          let _cartId = await createCart({
             ...subscription,
             subscriptionOccurenceId,
             isAuto: true,
             fulfillmentDate
          })
-
+         console.log('cart created', _cartId)
          await client.request(UPDATE_SUB_OCCURENCE, {
             subscriptionOccurenceId,
             brandCustomerId: brand_customerId,
             isAuto: true,
             cartId: _cartId
          })
+         console.log('subscription occurence updated with newly created cartId')
 
          await statusLogger({
             keycloakId,
@@ -109,7 +121,8 @@ export const autoGenerateCart = async ({
                keycloakId,
                brand_customerId,
                subscriptionOccurenceId,
-               hoursBefore
+               hoursBefore,
+               brandId
             })
          }
       }

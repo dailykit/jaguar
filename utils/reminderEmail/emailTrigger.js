@@ -16,10 +16,6 @@ export const GET_TEMPLATE_SETTINGS = `
             fileName
             path
          }
-         emailTemplateFile {
-            fileName
-            path
-         }
          fromEmail
       }
    }
@@ -29,10 +25,11 @@ export const emailTrigger = async ({
    title,
    variables = {},
    to,
-   brandId = null,
-   includeHeader = false,
-   includeFooter = false
+   brandId,
+   includeHeader,
+   includeFooter
 }) => {
+   console.log('from emailTrigger', brandId)
    try {
       const { templateSettings = [] } = await client.request(
          GET_TEMPLATE_SETTINGS,
@@ -57,14 +54,9 @@ export const emailTrigger = async ({
             return proceed
          })
          if (proceed) {
-            let html = await getHtml(
-               functionFile,
-               emailTemplateFile.fileName,
-               variables
-            )
+            let html = await getHtml(functionFile, variables)
             let subjectLine = await getHtml(
                functionFile,
-               emailTemplateFile.fileName,
                variables,
                subjectLineTemplate
             )
@@ -76,9 +68,9 @@ export const emailTrigger = async ({
                   subject: subjectLine,
                   attachments: [],
                   html,
-                  brandId,
-                  includeHeader,
-                  includeFooter
+                  ...(brandId && { brandId }),
+                  ...(includeHeader && { includeHeader }),
+                  ...(includeFooter && { includeFooter })
                }
             })
             return sendEmail
@@ -104,12 +96,7 @@ export const emailTrigger = async ({
    }
 }
 
-const getHtml = async (
-   functionFile,
-   emailTemplateFileName,
-   variables,
-   subjectLineTemplate
-) => {
+const getHtml = async (functionFile, variables, subjectLineTemplate) => {
    try {
       const { origin } = new URL(process.env.DATA_HUB)
       const template_variables = encodeURI(JSON.stringify(variables))
@@ -117,7 +104,6 @@ const getHtml = async (
          const template_options = encodeURI(
             JSON.stringify({
                path: functionFile.path,
-               emailTemplateFileName,
                format: 'html',
                readVar: true
             })
@@ -130,7 +116,6 @@ const getHtml = async (
          const template_options = encodeURI(
             JSON.stringify({
                path: functionFile.path,
-               emailTemplateFileName,
                format: 'html'
             })
          )

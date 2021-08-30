@@ -20,8 +20,13 @@ export const autoSelect = async (req, res) => {
       const result = await Promise.all(
          rows.map(async row => {
             try {
-               const { keycloakId, brand_customerId, subscriptionOccurenceId } =
-                  row
+               const {
+                  keycloakId,
+                  brand_customerId,
+                  subscriptionOccurenceId,
+                  hoursBefore,
+                  brandId
+               } = row
                const { subscriptionOccurences = [] } = await client.request(
                   SUBSCRIPTION_OCCURENCES,
                   {
@@ -49,7 +54,7 @@ export const autoSelect = async (req, res) => {
                   )
                      return {
                         success: true,
-                        message: `Reminder email functionality is disabled`
+                        message: `Auto select functionality is disabled`
                      }
                }
 
@@ -103,12 +108,16 @@ export const autoSelect = async (req, res) => {
                         'Sent reminder email alerting customer that this week is skipped.'
                   })
                   await emailTrigger({
-                     title: 'weekSkipped',
+                     title: 'subscription-reminder-email',
                      variables: {
                         subscriptionOccurenceId,
-                        brandCustomerId: brand_customerId
+                        brandCustomerId: brand_customerId,
+                        hoursBefore,
+                        case: 'weekSkipped',
+                        brandId
                      },
-                     to: brand_customer.customer.email
+                     to: brand_customer.customer.email,
+                     brandId
                   })
                   return {
                      data: row,
@@ -124,8 +133,9 @@ export const autoSelect = async (req, res) => {
                      }
 
                   const method = require(`../../../options/${
-                     subscriptionOccurence.subscriptionAutoSelectOption &&
                      subscriptionOccurence.subscriptionAutoSelectOption
+                        ? subscriptionOccurence.subscriptionAutoSelectOption
+                        : 'random.js'
                   }`)
 
                   const sortedProducts = await method.default(products)
@@ -161,12 +171,16 @@ export const autoSelect = async (req, res) => {
                            'Sent email reminding customer that product has been added for this week.'
                      })
                      await emailTrigger({
-                        title: 'autoGenerateCart',
+                        title: 'subscription-reminder-email',
                         variables: {
                            subscriptionOccurenceId,
-                           brandCustomerId: brand_customerId
+                           brandCustomerId: brand_customerId,
+                           hoursBefore,
+                           case: 'autoGenerateCart',
+                           brandId
                         },
-                        to: brand_customer.customer.email
+                        to: brand_customer.customer.email,
+                        brandId
                      })
                      return {
                         data: row,

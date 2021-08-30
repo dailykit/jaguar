@@ -7,7 +7,7 @@ export const template_compiler = (text, data) => {
       const evaluate = (path, data) =>
          path.split('.').reduce((o, i) => o[i], data)
 
-      const matches = text.match(regex)
+      const matches = text.match(regex) || []
 
       const parsed = matches.map(match => {
          const key = match.slice(2, -2)

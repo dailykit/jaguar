@@ -74,14 +74,12 @@ export const createScheduledEvent = async (req, res) => {
                   }
                })
 
-               const dates = hoursBefore.map(item =>
-                  moment(occurence.cutoffTimeStamp)
-                     .subtract(item, 'hours')
-                     .format('YYYY-MM-DD HH:mm:ss')
-               )
-
                await Promise.all(
-                  dates.map(async item => {
+                  hoursBefore.map(async item => {
+                     const dateItem = moment(occurence.cutoffTimeStamp)
+                        .subtract(item, 'hours')
+                        .format('YYYY-MM-DD HH:mm:ss')
+
                      await axios({
                         url,
                         method: 'POST',
@@ -97,9 +95,10 @@ export const createScheduledEvent = async (req, res) => {
                               webhook:
                                  new URL(process.env.DATA_HUB).origin +
                                  '/server/webhook/occurence/reminder',
-                              schedule_at: item + timezone,
+                              schedule_at: dateItem + timezone,
                               payload: {
-                                 subscriptionOccurenceId: occurence.id
+                                 subscriptionOccurenceId: occurence.id,
+                                 hoursBefore: item
                               },
                               headers: []
                            }

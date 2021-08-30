@@ -8,6 +8,14 @@ export const statusLogger = async ({
    brand_customerId = null,
    subscriptionOccurenceId = null
 }) => {
+   console.log({
+      message,
+      type,
+      keycloakId,
+      cartId,
+      brand_customerId,
+      subscriptionOccurenceId
+   })
    await client.request(INSERT_ACTIVITY_LOGS, {
       objects: [
          {

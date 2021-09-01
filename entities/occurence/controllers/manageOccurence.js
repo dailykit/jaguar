@@ -578,6 +578,7 @@ const handle_valid_cart_occurence_customers = async occurence => {
          await client.request(SUBSCRIPTION_CUSTOMER_FULL_REPORT, {
             where: {
                isPaused: { _eq: false },
+               isArchived: { _eq: false },
                isSkipped: { _eq: false },
                cartId: { _is_null: false },
                isItemCountValid: { _eq: true },

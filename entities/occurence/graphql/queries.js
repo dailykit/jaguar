@@ -112,6 +112,7 @@ export const SUBSCRIPTION_CUSTOMER_FULL_REPORT = `
          cartId
          isPaused
          isSkipped
+         isArchived
          keycloakId
          betweenPause
          paymentStatus

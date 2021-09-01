@@ -578,6 +578,7 @@ const handle_valid_cart_occurence_customers = async occurence => {
          await client.request(SUBSCRIPTION_CUSTOMER_FULL_REPORT, {
             where: {
                isPaused: { _eq: false },
+               isArchived: { _eq: false },
                isSkipped: { _eq: false },
                cartId: { _is_null: false },
                isItemCountValid: { _eq: true },
@@ -588,7 +589,14 @@ const handle_valid_cart_occurence_customers = async occurence => {
 
       if (customers.length > 0) {
          await client.request(UDPATE_OCCURENCE_CUSTOMER_CARTS, {
-            where: { id: { _in: customers.map(node => node.cartId) } },
+            where: {
+               id: { _in: customers.map(node => node.cartId) },
+               subscriptionOccurenceCustomer: {
+                  isArchived: {
+                     _eq: false
+                  }
+               }
+            },
             _inc: { paymentRetryAttempt: 1 },
             _set: {
                lastUpdatedBy: {
